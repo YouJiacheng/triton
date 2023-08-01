@@ -342,7 +342,8 @@ class _attention(torch.autograd.Function):
         dk = torch.empty_like(k)
         dv = torch.empty_like(v)
         delta = torch.empty_like(L)
-        _bwd_preprocess[(ctx.grid[0] * ctx.grid[1], )](
+        NUM_BLOCKS_M = cdiv(q.shape[2], BLOCK)
+        _bwd_preprocess[(NUM_BLOCKS_M * ctx.grid[1], )](
             o, do,
             delta,
             BLOCK_M=BLOCK, D_HEAD=ctx.BLOCK_DMODEL,
