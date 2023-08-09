@@ -10,6 +10,7 @@ Sequence Parallel implementation inspired by HazyResearch
 
 import torch
 
+import triton
 from .. import cdiv, jit
 from .. import language as tl
 
@@ -342,8 +343,8 @@ class _attention(torch.autograd.Function):
         dk = torch.empty_like(k)
         dv = torch.empty_like(v)
         delta = torch.empty_like(L)
-        NUM_BLOCKS_M = cdiv(q.shape[2], BLOCK)
-        _bwd_preprocess[(NUM_BLOCKS_M * ctx.grid[1], )](
+        num_block_q = triton.cdiv(q.shape[2], BLOCK)
+        _bwd_preprocess[(num_block_q * ctx.grid[1], )](
             o, do,
             delta,
             BLOCK_M=BLOCK, D_HEAD=ctx.BLOCK_DMODEL,

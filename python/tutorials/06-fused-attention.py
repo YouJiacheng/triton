@@ -172,7 +172,7 @@ def _bwd_kernel(
             lo = 0
         # initialize row/col offsets
         offs_qm = lo + tl.arange(0, BLOCK_M)
-        offs_n = start_n * BLOCK_M + tl.arange(0, BLOCK_M) 
+        offs_n = start_n * BLOCK_M + tl.arange(0, BLOCK_M)
         offs_m = tl.arange(0, BLOCK_N)
         offs_k = tl.arange(0, BLOCK_DMODEL)
         # initialize pointers to value-like data
@@ -279,8 +279,9 @@ class _attention(torch.autograd.Function):
         dk = torch.empty_like(k)
         dv = torch.empty_like(v)
         delta = torch.empty_like(L)
-        NUM_BLOCKS = triton.cdiv(q.shape[2], BLOCK)
-        _bwd_preprocess[(NUM_BLOCKS * ctx.grid[1], )](
+        num_block_q = triton.cdiv(q.shape[2], BLOCK)
+        num_block_kv = triton.cdiv(k.shape[2], BLOCK)
+        _bwd_preprocess[(num_block_q * ctx.grid[1], )](
             o, do,
             delta,
             BLOCK_M=BLOCK, D_HEAD=ctx.BLOCK_DMODEL,
@@ -294,7 +295,7 @@ class _attention(torch.autograd.Function):
             k.stride(0), k.stride(1), k.stride(2), k.stride(3),
             v.stride(0), v.stride(1), v.stride(2), v.stride(3),
             q.shape[0], q.shape[1], q.shape[2], ctx.P_SEQ,
-            ctx.grid[0], NUM_BLOCKS,
+            num_block_q=num_block_q, num_block_kv=num_block_kv,
             BLOCK_M=BLOCK, BLOCK_N=BLOCK,
             BLOCK_DMODEL=ctx.BLOCK_DMODEL, num_warps=8,
             CAUSAL=ctx.causal,
